@@ -1,0 +1,10 @@
+<?php
+
+namespace App\Models;
+
+use OiLab\OiLaravelGeo\Models\Borough as BaseBorough;
+
+class Borough extends BaseBorough
+{
+    //
+}

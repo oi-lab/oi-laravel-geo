@@ -1,0 +1,6 @@
+# GeoJSON files should be placed here
+# Example structure:
+# - countries.geojson
+# - regions.geojson
+# - departments.geojson
+# - cities.geojson
