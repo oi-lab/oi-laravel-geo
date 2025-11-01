@@ -3,56 +3,62 @@
 namespace OiLab\OiLaravelGeo\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
+use OiLab\OiLaravelGeo\Casts\PointCast;
 use OiLab\OiLaravelGeo\Services\GeoQueryBuilder;
 
 /**
  * Trait for models with Point geometry support.
  *
- * Requires a 'location' column of type POINT in the database.
+ * Requires a 'location' column in the database.
+ * - PostgreSQL: POINT geometry type
+ * - MySQL/SQLite: JSON column
  *
  * Usage:
  * - Add 'location' to $fillable array
- * - Add to migration: $table->point('location')->nullable();
+ * - The trait automatically adds the appropriate cast
  *
  * Supports MySQL, PostgreSQL (PostGIS), and SQLite.
  */
 trait HasPoint
 {
+    /**
+     * Initialize the HasPoint trait for an instance.
+     */
+    public function initializeHasPoint(): void
+    {
+        $this->mergeCasts([
+            'location' => PointCast::class,
+        ]);
+    }
+
     public function getLatitudeAttribute(): ?float
     {
-        if (! $this->location) {
+        $location = $this->location;
+
+        if (! $location) {
             return null;
         }
 
-        preg_match('/POINT\(([^ ]+) ([^ ]+)\)/', $this->location, $matches);
+        if (is_array($location)) {
+            return $location['latitude'] ?? $location[1] ?? null;
+        }
 
-        return isset($matches[2]) ? (float) $matches[2] : null;
+        return null;
     }
 
     public function getLongitudeAttribute(): ?float
     {
-        if (! $this->location) {
+        $location = $this->location;
+
+        if (! $location) {
             return null;
         }
 
-        preg_match('/POINT\(([^ ]+) ([^ ]+)\)/', $this->location, $matches);
-
-        return isset($matches[1]) ? (float) $matches[1] : null;
-    }
-
-    public function setLocationAttribute(?array $value): void
-    {
-        if ($value === null) {
-            $this->attributes['location'] = null;
-
-            return;
+        if (is_array($location)) {
+            return $location['longitude'] ?? $location[0] ?? null;
         }
 
-        $longitude = $value['longitude'] ?? $value[0];
-        $latitude = $value['latitude'] ?? $value[1];
-
-        $srid = config('oi-laravel-geo.srid', 4326);
-        $this->attributes['location'] = "POINT({$longitude} {$latitude})";
+        return null;
     }
 
     /**

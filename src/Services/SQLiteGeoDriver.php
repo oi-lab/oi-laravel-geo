@@ -18,16 +18,16 @@ class SQLiteGeoDriver implements GeoQueryDriverInterface
 
     public function withinRadius(Builder $query, string $column, float $latitude, float $longitude, int $radiusInKm): Builder
     {
-        // Extract latitude and longitude from POINT column using string parsing
-        // POINT format: "POINT(longitude latitude)"
+        // Extract latitude and longitude from JSON column
+        // JSON format: {"longitude": x, "latitude": y}
         return $query->whereRaw(
             "(
                 6371 * acos(
                     cos(radians(?)) *
-                    cos(radians(CAST(substr({$column}, instr({$column}, ' ') + 1, instr({$column}, ')') - instr({$column}, ' ') - 1) AS REAL))) *
-                    cos(radians(CAST(substr({$column}, 7, instr({$column}, ' ') - 7) AS REAL)) - radians(?)) +
+                    cos(radians(CAST(json_extract({$column}, '$.latitude') AS REAL))) *
+                    cos(radians(CAST(json_extract({$column}, '$.longitude') AS REAL)) - radians(?)) +
                     sin(radians(?)) *
-                    sin(radians(CAST(substr({$column}, instr({$column}, ' ') + 1, instr({$column}, ')') - instr({$column}, ' ') - 1) AS REAL)))
+                    sin(radians(CAST(json_extract({$column}, '$.latitude') AS REAL)))
                 )
             ) <= ?",
             [$latitude, $longitude, $latitude, $radiusInKm]
@@ -36,12 +36,12 @@ class SQLiteGeoDriver implements GeoQueryDriverInterface
 
     public function withinBounds(Builder $query, string $column, float $minLat, float $minLng, float $maxLat, float $maxLng): Builder
     {
-        // Extract latitude and longitude from POINT column
+        // Extract latitude and longitude from JSON column
         return $query->whereRaw(
-            "CAST(substr({$column}, 7, instr({$column}, ' ') - 7) AS REAL) BETWEEN ? AND ?",
+            "CAST(json_extract({$column}, '$.longitude') AS REAL) BETWEEN ? AND ?",
             [$minLng, $maxLng]
         )->whereRaw(
-            "CAST(substr({$column}, instr({$column}, ' ') + 1, instr({$column}, ')') - instr({$column}, ' ') - 1) AS REAL) BETWEEN ? AND ?",
+            "CAST(json_extract({$column}, '$.latitude') AS REAL) BETWEEN ? AND ?",
             [$minLat, $maxLat]
         );
     }
@@ -64,47 +64,30 @@ class SQLiteGeoDriver implements GeoQueryDriverInterface
     public function polygonContainsPoint(Builder $query, string $column, float $latitude, float $longitude): Builder
     {
         // SQLite doesn't have built-in polygon functions
-        // This is a simplified implementation using bounding box
-        // For accurate results, use SpatiaLite extension
-        return $query->whereRaw(
-            "? LIKE '%POLYGON%'",
-            [$column]
-        );
+        // This is a simplified implementation checking if column is not null
+        // For accurate results, use SpatiaLite extension or PostgreSQL
+        return $query->whereNotNull($column);
     }
 
     public function polygonIntersectsPolygon(Builder $query, string $column, array $coordinates): Builder
     {
-        // Simplified implementation using bounding box
-        $lngs = array_column($coordinates, 0);
-        $lats = array_column($coordinates, 1);
-
-        $minLng = min($lngs);
-        $maxLng = max($lngs);
-        $minLat = min($lats);
-        $maxLat = max($lats);
-
-        return $query->whereRaw(
-            "? LIKE '%POLYGON%'",
-            [$column]
-        );
+        // Simplified implementation - just check if polygon exists
+        // For accurate results, use SpatiaLite extension or PostgreSQL
+        return $query->whereNotNull($column);
     }
 
     public function polygonIntersectsBounds(Builder $query, string $column, float $minLat, float $minLng, float $maxLat, float $maxLng): Builder
     {
-        // Simplified implementation
-        return $query->whereRaw(
-            "? LIKE '%POLYGON%'",
-            [$column]
-        );
+        // Simplified implementation - just check if polygon exists
+        // For accurate results, use SpatiaLite extension or PostgreSQL
+        return $query->whereNotNull($column);
     }
 
     public function polygonIntersectsCircle(Builder $query, string $column, float $latitude, float $longitude, int $radiusInKm): Builder
     {
-        // Simplified implementation
-        return $query->whereRaw(
-            "? LIKE '%POLYGON%'",
-            [$column]
-        );
+        // Simplified implementation - just check if polygon exists
+        // For accurate results, use SpatiaLite extension or PostgreSQL
+        return $query->whereNotNull($column);
     }
 
     public function calculatePolygonArea(string $wkt): ?float

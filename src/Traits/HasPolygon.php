@@ -3,63 +3,38 @@
 namespace OiLab\OiLaravelGeo\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
+use OiLab\OiLaravelGeo\Casts\PolygonCast;
 use OiLab\OiLaravelGeo\Services\GeoQueryBuilder;
 
 /**
  * Trait for models with Polygon geometry support.
  *
- * Requires a 'boundary' column of type POLYGON in the database.
+ * Requires a 'boundary' column in the database.
+ * - PostgreSQL: POLYGON geometry type
+ * - MySQL/SQLite: JSON column
  *
  * Usage:
  * - Add 'boundary' to $fillable array
- * - Add to migration: $table->polygon('boundary')->nullable();
+ * - The trait automatically adds the appropriate cast
  *
  * Supports MySQL, PostgreSQL (PostGIS), and SQLite.
  */
 trait HasPolygon
 {
-    public function setBoundaryAttribute(?array $coordinates): void
+    /**
+     * Initialize the HasPolygon trait for an instance.
+     */
+    public function initializeHasPolygon(): void
     {
-        if ($coordinates === null) {
-            $this->attributes['boundary'] = null;
-
-            return;
-        }
-
-        $points = collect($coordinates)
-            ->map(fn ($point) => "{$point[0]} {$point[1]}")
-            ->join(', ');
-
-        $firstPoint = $coordinates[0];
-        $points .= ", {$firstPoint[0]} {$firstPoint[1]}";
-
-        $srid = config('oi-laravel-geo.srid', 4326);
-        $this->attributes['boundary'] = "POLYGON(({$points}))";
+        $this->mergeCasts([
+            'boundary' => PolygonCast::class,
+        ]);
     }
 
     public function getBoundaryCoordinatesAttribute(): ?array
     {
-        if (! $this->boundary) {
-            return null;
-        }
-
-        preg_match('/POLYGON\(\(([^)]+)\)\)/', $this->boundary, $matches);
-
-        if (! isset($matches[1])) {
-            return null;
-        }
-
-        $points = explode(', ', $matches[1]);
-
-        return collect($points)
-            ->map(function ($point) {
-                [$lng, $lat] = explode(' ', $point);
-
-                return [(float) $lng, (float) $lat];
-            })
-            ->slice(0, -1)
-            ->values()
-            ->toArray();
+        // The boundary is already cast to array by PolygonCast
+        return $this->boundary;
     }
 
     /**

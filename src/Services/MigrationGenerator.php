@@ -112,7 +112,7 @@ class MigrationGenerator
     protected function generateCountriesMigration(): string
     {
         $hasGeometry = $this->shouldHaveGeometry('countries');
-        $geometryColumns = $hasGeometry ? "\n            \$table->polygon('boundary')->nullable();" : '';
+        $geometryColumns = $hasGeometry ? $this->getPolygonColumn('boundary') : '';
 
         return <<<PHP
 <?php
@@ -150,7 +150,7 @@ PHP;
     protected function generateRegionsMigration(): string
     {
         $hasGeometry = $this->shouldHaveGeometry('regions');
-        $geometryColumns = $hasGeometry ? "\n            \$table->polygon('boundary')->nullable();" : '';
+        $geometryColumns = $hasGeometry ? $this->getPolygonColumn('boundary') : '';
 
         return <<<PHP
 <?php
@@ -190,7 +190,7 @@ PHP;
     protected function generateDepartmentsMigration(): string
     {
         $hasGeometry = $this->shouldHaveGeometry('departments');
-        $geometryColumns = $hasGeometry ? "\n            \$table->polygon('boundary')->nullable();" : '';
+        $geometryColumns = $hasGeometry ? $this->getPolygonColumn('boundary') : '';
 
         return <<<PHP
 <?php
@@ -233,7 +233,7 @@ PHP;
         $geometryColumns = '';
 
         if ($hasGeometry) {
-            $geometryColumns = "\n            \$table->point('location')->nullable();\n            \$table->polygon('boundary')->nullable();";
+            $geometryColumns = $this->getPointColumn('location') . $this->getPolygonColumn('boundary');
         }
 
         return <<<PHP
@@ -276,7 +276,7 @@ PHP;
     protected function generateBoroughsMigration(): string
     {
         $hasGeometry = $this->shouldHaveGeometry('boroughs');
-        $geometryColumns = $hasGeometry ? "\n            \$table->polygon('boundary')->nullable();" : '';
+        $geometryColumns = $hasGeometry ? $this->getPolygonColumn('boundary') : '';
 
         return <<<PHP
 <?php
@@ -316,7 +316,7 @@ PHP;
     protected function generateAddressesMigration(): string
     {
         $hasGeometry = $this->shouldHaveGeometry('addresses');
-        $geometryColumns = $hasGeometry ? "\n            \$table->point('location')->nullable();" : '';
+        $geometryColumns = $hasGeometry ? $this->getPointColumn('location') : '';
 
         // City field
         $cityField = $this->configuration['address_include_city'] ?? false
@@ -352,7 +352,7 @@ return new class extends Migration
             \$table->string('street_1');
             \$table->string('street_2')->nullable();
             \$table->string('street_3')->nullable();
-            \$table->{$cityField}
+            {$cityField}
             \$table->string('postal_code');{$optionalFields}{$geometryColumns}
             \$table->timestamps();
 
@@ -376,5 +376,33 @@ PHP;
         }
 
         return in_array($table, $this->configuration['geometry_models'] ?? []);
+    }
+
+    /**
+     * Get the appropriate point column definition based on database type.
+     */
+    protected function getPointColumn(string $columnName): string
+    {
+        $database = $this->configuration['database'] ?? 'mysql';
+
+        return match ($database) {
+            'pgsql' => "\n            \$table->point('{$columnName}')->nullable();",
+            'mysql', 'sqlite' => "\n            \$table->json('{$columnName}')->nullable();",
+            default => "\n            \$table->json('{$columnName}')->nullable();",
+        };
+    }
+
+    /**
+     * Get the appropriate polygon column definition based on database type.
+     */
+    protected function getPolygonColumn(string $columnName): string
+    {
+        $database = $this->configuration['database'] ?? 'mysql';
+
+        return match ($database) {
+            'pgsql' => "\n            \$table->polygon('{$columnName}')->nullable();",
+            'mysql', 'sqlite' => "\n            \$table->json('{$columnName}')->nullable();",
+            default => "\n            \$table->json('{$columnName}')->nullable();",
+        };
     }
 }

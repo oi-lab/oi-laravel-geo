@@ -17,7 +17,6 @@ class InstallOiLaravelGeoCommand extends Command
 {
     protected $signature = 'geo:install
                             {--force : Overwrite existing files}
-                            {--migrations : Publish migrations only}
                             {--config : Publish config only}
                             {--stubs : Publish stubs only}
                             {--geojson : Publish GeoJSON files only}
@@ -32,13 +31,12 @@ class InstallOiLaravelGeoCommand extends Command
         info('🌍 Welcome to OiLaravelGeo Installation');
 
         $force = $this->option('force');
-        $migrations = $this->option('migrations');
         $config = $this->option('config');
         $stubs = $this->option('stubs');
         $geojson = $this->option('geojson');
         $interactive = ! $this->option('interactive');
 
-        $publishAll = ! $migrations && ! $config && ! $stubs && ! $geojson;
+        $publishAll = ! $config && ! $stubs && ! $geojson;
 
         // Interactive configuration
         if ($publishAll && $interactive) {
@@ -49,11 +47,9 @@ class InstallOiLaravelGeoCommand extends Command
             $this->publishConfig($force);
         }
 
-        if ($publishAll || $migrations) {
+        if ($publishAll) {
             if (! empty($this->configuration)) {
                 $this->generateCustomMigrations();
-            } else {
-                $this->publishMigrations($force);
             }
         }
 
@@ -74,7 +70,7 @@ class InstallOiLaravelGeoCommand extends Command
             $this->updateConfiguration();
         }
 
-        if ($publishAll || $migrations) {
+        if ($publishAll && ! empty($this->configuration)) {
             if (confirm('Run migrations now?', true)) {
                 $this->call('migrate');
             }
@@ -170,20 +166,6 @@ class InstallOiLaravelGeoCommand extends Command
         $params = [
             '--provider' => 'OiLab\OiLaravelGeo\OiLaravelGeoServiceProvider',
             '--tag' => 'oi-laravel-geo-config',
-        ];
-
-        if ($force) {
-            $params['--force'] = true;
-        }
-
-        $this->call('vendor:publish', $params);
-    }
-
-    protected function publishMigrations(bool $force): void
-    {
-        $params = [
-            '--provider' => 'OiLab\OiLaravelGeo\OiLaravelGeoServiceProvider',
-            '--tag' => 'oi-laravel-geo-migrations',
         ];
 
         if ($force) {
