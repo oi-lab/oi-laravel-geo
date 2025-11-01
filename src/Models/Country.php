@@ -5,6 +5,7 @@ namespace OiLab\OiLaravelGeo\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use OiLab\OiLaravelGeo\Facades\OiGeo;
+use OiLab\OiLaravelGeo\Facades\OiLaravelGeo;
 
 class Country extends Model
 {
@@ -30,11 +31,11 @@ class Country extends Model
 
     public function regions(): HasMany
     {
-        return $this->hasMany(OiGeo::getRegionModel());
+        return $this->hasMany(OiLaravelGeo::getRegionModel());
     }
 
     public function addresses(): HasMany
     {
-        return $this->hasMany(OiGeo::getAddressModel());
+        return $this->hasMany(OiLaravelGeo::getAddressModel());
     }
 }

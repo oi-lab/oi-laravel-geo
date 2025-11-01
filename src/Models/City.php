@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use OiLab\OiLaravelGeo\Facades\OiGeo;
+use OiLab\OiLaravelGeo\Facades\OiLaravelGeo;
 
 class City extends Model
 {
@@ -34,16 +35,16 @@ class City extends Model
 
     public function department(): BelongsTo
     {
-        return $this->belongsTo(OiGeo::getDepartmentModel());
+        return $this->belongsTo(OiLaravelGeo::getDepartmentModel());
     }
 
     public function boroughs(): HasMany
     {
-        return $this->hasMany(OiGeo::getBoroughModel());
+        return $this->hasMany(OiLaravelGeo::getBoroughModel());
     }
 
     public function addresses(): HasMany
     {
-        return $this->hasMany(OiGeo::getAddressModel());
+        return $this->hasMany(OiLaravelGeo::getAddressModel());
     }
 }

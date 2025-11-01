@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use OiLab\OiLaravelGeo\Facades\OiGeo;
+use OiLab\OiLaravelGeo\Facades\OiLaravelGeo;
 
 class Region extends Model
 {
@@ -33,11 +34,11 @@ class Region extends Model
 
     public function country(): BelongsTo
     {
-        return $this->belongsTo(OiGeo::getCountryModel());
+        return $this->belongsTo(OiLaravelGeo::getCountryModel());
     }
 
     public function departments(): HasMany
     {
-        return $this->hasMany(OiGeo::getDepartmentModel());
+        return $this->hasMany(OiLaravelGeo::getDepartmentModel());
     }
 }
