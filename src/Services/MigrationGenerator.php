@@ -9,16 +9,104 @@ class MigrationGenerator
     public function generate(): array
     {
         $migrations = [];
-        $timestamp = now()->format('Y_m_d_His');
+        $baseTimestamp = now();
+        $tables = ['countries', 'regions', 'departments', 'cities', 'boroughs', 'addresses'];
+        $modelsToGenerate = $this->configuration['models_to_generate'] ?? [];
 
-        $migrations["{$timestamp}_create_countries_table.php"] = $this->generateCountriesMigration();
-        $migrations["{$timestamp}_create_regions_table.php"] = $this->generateRegionsMigration();
-        $migrations["{$timestamp}_create_departments_table.php"] = $this->generateDepartmentsMigration();
-        $migrations["{$timestamp}_create_cities_table.php"] = $this->generateCitiesMigration();
-        $migrations["{$timestamp}_create_boroughs_table.php"] = $this->generateBoroughsMigration();
-        $migrations["{$timestamp}_create_addresses_table.php"] = $this->generateAddressesMigration();
+        // Map model names to table names
+        $modelToTable = [
+            'Country' => 'countries',
+            'Region' => 'regions',
+            'Department' => 'departments',
+            'City' => 'cities',
+            'Borough' => 'boroughs',
+            'Address' => 'addresses',
+        ];
+
+        // Define dependencies (child => [parents])
+        $dependencies = [
+            'regions' => ['countries'],
+            'departments' => ['countries', 'regions'],
+            'cities' => ['countries', 'regions', 'departments'],
+            'boroughs' => ['countries', 'regions', 'departments', 'cities'],
+            'addresses' => $this->getAddressDependencies(),
+        ];
+
+        // Filter tables based on models_to_generate
+        $tablesToGenerate = [];
+        foreach ($modelsToGenerate as $model) {
+            if (isset($modelToTable[$model])) {
+                $tablesToGenerate[] = $modelToTable[$model];
+            }
+        }
+
+        // If no specific models are requested, generate all tables
+        if (empty($tablesToGenerate)) {
+            $tablesToGenerate = $tables;
+        }
+
+        // Add required dependencies
+        $tablesToGenerate = $this->addRequiredDependencies($tablesToGenerate, $dependencies);
+
+        // Maintain dependency order
+        $orderedTables = array_intersect($tables, $tablesToGenerate);
+
+        $secondsOffset = 0;
+        foreach ($orderedTables as $table) {
+            $timestamp = $baseTimestamp->copy()->addSeconds($secondsOffset)->format('Y_m_d_His');
+            $methodName = 'generate'.ucfirst($table).'Migration';
+
+            $migrations["{$timestamp}_create_{$table}_table.php"] = $this->$methodName();
+            $secondsOffset++;
+        }
 
         return $migrations;
+    }
+
+    /**
+     * Get address table dependencies based on configuration.
+     */
+    protected function getAddressDependencies(): array
+    {
+        $dependencies = [];
+
+        if ($this->configuration['address_include_city'] ?? false) {
+            $dependencies = array_merge($dependencies, ['countries', 'regions', 'departments', 'cities']);
+        }
+
+        if ($this->configuration['address_include_country'] ?? false) {
+            $dependencies[] = 'countries';
+        }
+
+        if ($this->configuration['address_include_region'] ?? false) {
+            $dependencies = array_merge($dependencies, ['countries', 'regions']);
+        }
+
+        if ($this->configuration['address_include_department'] ?? false) {
+            $dependencies = array_merge($dependencies, ['countries', 'regions', 'departments']);
+        }
+
+        return array_unique($dependencies);
+    }
+
+    /**
+     * Add required parent tables based on dependencies.
+     */
+    protected function addRequiredDependencies(array $tables, array $dependencies): array
+    {
+        $result = $tables;
+
+        foreach ($tables as $table) {
+            if (isset($dependencies[$table])) {
+                foreach ($dependencies[$table] as $dependency) {
+                    if (! in_array($dependency, $result)) {
+                        $result[] = $dependency;
+                    }
+                }
+            }
+        }
+
+        return array_unique($result);
     }
 
     protected function generateCountriesMigration(): string
