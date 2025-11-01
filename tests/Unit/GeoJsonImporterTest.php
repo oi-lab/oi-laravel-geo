@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\File;
 use OiLab\OiLaravelGeo\Models\Borough;
 use OiLab\OiLaravelGeo\Models\City;
 use OiLab\OiLaravelGeo\Models\Country;
@@ -13,11 +12,11 @@ use OiLab\OiLaravelGeo\Services\DepartmentImporter;
 use OiLab\OiLaravelGeo\Services\RegionImporter;
 
 beforeEach(function () {
-    $this->countryImporter = new CountryImporter();
-    $this->regionImporter = new RegionImporter();
-    $this->departmentImporter = new DepartmentImporter();
-    $this->cityImporter = new CityImporter();
-    $this->boroughImporter = new BoroughImporter();
+    $this->countryImporter = new CountryImporter;
+    $this->regionImporter = new RegionImporter;
+    $this->departmentImporter = new DepartmentImporter;
+    $this->cityImporter = new CityImporter;
+    $this->boroughImporter = new BoroughImporter;
 });
 
 it('can import countries from geojson', function () {

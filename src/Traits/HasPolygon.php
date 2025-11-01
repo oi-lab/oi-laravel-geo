@@ -3,6 +3,7 @@
 namespace OiLab\OiLaravelGeo\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
+use OiLab\OiLaravelGeo\Services\GeoQueryBuilder;
 
 /**
  * Trait for models with Polygon geometry support.
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
  * Usage:
  * - Add 'boundary' to $fillable array
  * - Add to migration: $table->polygon('boundary')->nullable();
+ *
+ * Supports MySQL, PostgreSQL (PostGIS), and SQLite.
  */
 trait HasPolygon
 {
@@ -36,13 +39,13 @@ trait HasPolygon
 
     public function getBoundaryCoordinatesAttribute(): ?array
     {
-        if (!$this->boundary) {
+        if (! $this->boundary) {
             return null;
         }
 
         preg_match('/POLYGON\(\(([^)]+)\)\)/', $this->boundary, $matches);
 
-        if (!isset($matches[1])) {
+        if (! isset($matches[1])) {
             return null;
         }
 
@@ -59,46 +62,73 @@ trait HasPolygon
             ->toArray();
     }
 
+    /**
+     * Scope to find polygons that contain a specific point.
+     */
     public function scopeContainsPoint(Builder $query, float $latitude, float $longitude): Builder
     {
-        $srid = config('oi-laravel-geo.srid', 4326);
+        $geoQuery = new GeoQueryBuilder($this->getConnectionName());
 
-        return $query->whereRaw(
-            "ST_Contains(boundary, ST_GeomFromText(?, ?))",
-            ["POINT({$longitude} {$latitude})", $srid]
-        );
+        return $geoQuery->polygonContainsPoint($query, 'boundary', $latitude, $longitude);
     }
 
+    /**
+     * Scope to find polygons that intersect with another polygon.
+     */
     public function scopeIntersects(Builder $query, array $coordinates): Builder
     {
-        $srid = config('oi-laravel-geo.srid', 4326);
+        $geoQuery = new GeoQueryBuilder($this->getConnectionName());
 
-        $points = collect($coordinates)
-            ->map(fn ($point) => "{$point[0]} {$point[1]}")
-            ->join(', ');
-
-        $firstPoint = $coordinates[0];
-        $points .= ", {$firstPoint[0]} {$firstPoint[1]}";
-
-        $polygon = "POLYGON(({$points}))";
-
-        return $query->whereRaw(
-            "ST_Intersects(boundary, ST_GeomFromText(?, ?))",
-            [$polygon, $srid]
-        );
+        return $geoQuery->polygonIntersectsPolygon($query, 'boundary', $coordinates);
     }
 
+    /**
+     * Scope to find polygons that intersect with a polygon (alias for intersects).
+     */
+    public function scopeIntersectsPolygon(Builder $query, array $coordinates): Builder
+    {
+        return $this->scopeIntersects($query, $coordinates);
+    }
+
+    /**
+     * Scope to find polygons that intersect with a rectangular bounding box.
+     */
+    public function scopeIntersectsBounds(Builder $query, float $minLat, float $minLng, float $maxLat, float $maxLng): Builder
+    {
+        $geoQuery = new GeoQueryBuilder($this->getConnectionName());
+
+        return $geoQuery->polygonIntersectsBounds($query, 'boundary', $minLat, $minLng, $maxLat, $maxLng);
+    }
+
+    /**
+     * Scope to find polygons that intersect with a circle.
+     */
+    public function scopeIntersectsCircle(Builder $query, float $latitude, float $longitude, int $radiusInKm): Builder
+    {
+        $geoQuery = new GeoQueryBuilder($this->getConnectionName());
+
+        return $geoQuery->polygonIntersectsCircle($query, 'boundary', $latitude, $longitude, $radiusInKm);
+    }
+
+    /**
+     * Scope to find polygons that intersect with a rectangle (alias for intersectsBounds).
+     */
+    public function scopeIntersectsRectangle(Builder $query, float $minLat, float $minLng, float $maxLat, float $maxLng): Builder
+    {
+        return $this->scopeIntersectsBounds($query, $minLat, $minLng, $maxLat, $maxLng);
+    }
+
+    /**
+     * Get the area of the polygon in square kilometers.
+     */
     public function getAreaInSquareKilometers(): ?float
     {
-        if (!$this->boundary) {
+        if (! $this->boundary) {
             return null;
         }
 
-        $result = \DB::selectOne(
-            "SELECT ST_Area(ST_GeomFromText(?)) / 1000000 as area",
-            [$this->boundary]
-        );
+        $geoQuery = new GeoQueryBuilder($this->getConnectionName());
 
-        return $result ? (float) $result->area : null;
+        return $geoQuery->calculatePolygonArea($this->boundary);
     }
 }

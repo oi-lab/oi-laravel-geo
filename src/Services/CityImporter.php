@@ -13,7 +13,7 @@ class CityImporter extends AbstractGeoJsonImporter
 
         $department = $departmentModel::query()->where('code', $properties['department_code'])->first();
 
-        if (!$department) {
+        if (! $department) {
             return false;
         }
 

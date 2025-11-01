@@ -13,7 +13,7 @@ class BoroughImporter extends AbstractGeoJsonImporter
 
         $city = $cityModel::query()->where('identifier', $properties['city_identifier'])->first();
 
-        if (!$city) {
+        if (! $city) {
             return false;
         }
 

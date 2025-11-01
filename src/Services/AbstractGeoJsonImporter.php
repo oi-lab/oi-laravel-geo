@@ -20,7 +20,7 @@ abstract class AbstractGeoJsonImporter
 
     protected function validateFile(string $filePath): void
     {
-        if (!File::exists($filePath)) {
+        if (! File::exists($filePath)) {
             throw new \RuntimeException("GeoJSON file not found: {$filePath}");
         }
     }
@@ -32,7 +32,7 @@ abstract class AbstractGeoJsonImporter
 
     protected function validateGeoJsonFormat(array $geojson): void
     {
-        if (!isset($geojson['features'])) {
+        if (! isset($geojson['features'])) {
             throw new \RuntimeException('Invalid GeoJSON format: missing features');
         }
     }

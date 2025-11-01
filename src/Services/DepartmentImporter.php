@@ -13,7 +13,7 @@ class DepartmentImporter extends AbstractGeoJsonImporter
 
         $region = $regionModel::query()->where('code', $properties['region_code'])->first();
 
-        if (!$region) {
+        if (! $region) {
             return false;
         }
 

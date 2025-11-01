@@ -2,7 +2,6 @@
 
 namespace OiLab\OiLaravelGeo\Tests;
 
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use OiLab\OiLaravelGeo\OiLaravelGeoServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;

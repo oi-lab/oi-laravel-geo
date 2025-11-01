@@ -37,7 +37,7 @@ class SeedGeoDataCommand extends Command
     {
         $type = $this->argument('type');
 
-        if (!$type) {
+        if (! $type) {
             $type = select(
                 'What type of data do you want to seed?',
                 ['countries', 'regions', 'departments', 'cities', 'boroughs', 'all']
@@ -72,7 +72,7 @@ class SeedGeoDataCommand extends Command
     {
         $filePath = $this->option('file') ?? $this->getDefaultFilePath($type);
 
-        if (!file_exists($filePath)) {
+        if (! file_exists($filePath)) {
             error("GeoJSON file not found: {$filePath}");
             warning("Please provide a valid GeoJSON file using --file option or place it at: {$filePath}");
 

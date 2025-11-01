@@ -3,6 +3,7 @@
 namespace OiLab\OiLaravelGeo\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
+use OiLab\OiLaravelGeo\Services\GeoQueryBuilder;
 
 /**
  * Trait for models with Point geometry support.
@@ -12,12 +13,14 @@ use Illuminate\Database\Eloquent\Builder;
  * Usage:
  * - Add 'location' to $fillable array
  * - Add to migration: $table->point('location')->nullable();
+ *
+ * Supports MySQL, PostgreSQL (PostGIS), and SQLite.
  */
 trait HasPoint
 {
     public function getLatitudeAttribute(): ?float
     {
-        if (!$this->location) {
+        if (! $this->location) {
             return null;
         }
 
@@ -28,7 +31,7 @@ trait HasPoint
 
     public function getLongitudeAttribute(): ?float
     {
-        if (!$this->location) {
+        if (! $this->location) {
             return null;
         }
 
@@ -52,24 +55,60 @@ trait HasPoint
         $this->attributes['location'] = "POINT({$longitude} {$latitude})";
     }
 
+    /**
+     * Scope to find points within a radius from a central point.
+     */
     public function scopeNearby(Builder $query, float $latitude, float $longitude, int $radiusInKm = 10): Builder
     {
-        $srid = config('oi-laravel-geo.srid', 4326);
+        $geoQuery = new GeoQueryBuilder($this->getConnectionName());
 
-        return $query->whereRaw(
-            "ST_Distance_Sphere(location, ST_GeomFromText(?, ?)) <= ?",
-            ["POINT({$longitude} {$latitude})", $srid, $radiusInKm * 1000]
-        );
+        return $geoQuery->withinRadius($query, 'location', $latitude, $longitude, $radiusInKm);
     }
 
+    /**
+     * Scope to find points within a rectangular bounding box.
+     */
     public function scopeWithinBounds(Builder $query, float $minLat, float $minLng, float $maxLat, float $maxLng): Builder
     {
-        $srid = config('oi-laravel-geo.srid', 4326);
-        $polygon = "POLYGON(({$minLng} {$minLat}, {$maxLng} {$minLat}, {$maxLng} {$maxLat}, {$minLng} {$maxLat}, {$minLng} {$minLat}))";
+        $geoQuery = new GeoQueryBuilder($this->getConnectionName());
 
-        return $query->whereRaw(
-            "ST_Within(location, ST_GeomFromText(?, ?))",
-            [$polygon, $srid]
+        return $geoQuery->withinBounds($query, 'location', $minLat, $minLng, $maxLat, $maxLng);
+    }
+
+    /**
+     * Scope to find points within a circle (alias for nearby).
+     */
+    public function scopeWithinCircle(Builder $query, float $latitude, float $longitude, int $radiusInKm): Builder
+    {
+        return $this->scopeNearby($query, $latitude, $longitude, $radiusInKm);
+    }
+
+    /**
+     * Scope to find points within a polygon.
+     */
+    public function scopeWithinPolygon(Builder $query, array $coordinates): Builder
+    {
+        $geoQuery = new GeoQueryBuilder($this->getConnectionName());
+
+        return $geoQuery->withinPolygon($query, 'location', $coordinates);
+    }
+
+    /**
+     * Calculate distance from this point to another point in kilometers.
+     */
+    public function distanceTo(float $latitude, float $longitude): float
+    {
+        if (! $this->latitude || ! $this->longitude) {
+            return 0.0;
+        }
+
+        $geoQuery = new GeoQueryBuilder($this->getConnectionName());
+
+        return $geoQuery->calculateDistance(
+            $this->latitude,
+            $this->longitude,
+            $latitude,
+            $longitude
         );
     }
 }

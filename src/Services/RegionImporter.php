@@ -13,7 +13,7 @@ class RegionImporter extends AbstractGeoJsonImporter
 
         $country = $countryModel::query()->where('code', $properties['country_code'])->first();
 
-        if (!$country) {
+        if (! $country) {
             return false;
         }
 

@@ -25,17 +25,47 @@ Install the package via Composer:
 composer require oi-lab/oi-laravel-geo
 ```
 
-Run the installation command:
+### Interactive Installation (Recommended)
+
+Run the interactive installation command:
 
 ```bash
-php artisan oi-laravel-geo:install
+php artisan geo:install
 ```
 
-This will:
-- Publish the configuration file
-- Publish migrations
-- Publish model stubs
-- Publish GeoJSON resource directory
+This will guide you through an interactive setup where you can:
+1. **Select your database type** (MySQL, PostgreSQL, or SQLite)
+2. **Enable geometry support** for spatial queries
+3. **Choose which models need geometry** (point/polygon columns)
+4. **Configure address relationships** (foreign keys vs simple strings)
+5. **Select models to generate** in your app/Models directory
+
+The installer will automatically:
+- ✅ Generate custom migrations based on your choices
+- ✅ Generate custom models with appropriate traits
+- ✅ Update configuration file
+- ✅ Publish GeoJSON resource directory
+
+### Manual Installation
+
+If you prefer manual setup, you can publish components individually:
+
+```bash
+# Publish configuration only
+php artisan geo:install --config
+
+# Publish migrations only
+php artisan geo:install --migrations
+
+# Publish model stubs only
+php artisan geo:install --stubs
+
+# Publish GeoJSON directory only
+php artisan geo:install --geojson
+
+# Force overwrite existing files
+php artisan geo:install --force
+```
 
 Run migrations:
 
@@ -279,25 +309,52 @@ class City extends BaseCity
 }
 ```
 
-**Point Geometry Usage:**
+#### Database Compatibility
+
+The geometry features support **MySQL 5.7+**, **PostgreSQL with PostGIS**, and **SQLite** (with limited functionality). The package automatically detects your database driver and uses the appropriate spatial functions.
+
+**Note:** For production use with SQLite, consider installing the SpatiaLite extension for full spatial support.
+
+#### Point Geometry Usage
+
+The `HasPoint` trait provides methods for working with POINT geometry columns:
 
 ```php
-// Set location
-$city->location = ['latitude' => 48.8566, 'longitude' => 2.3522];
+// Set location (accepts array with longitude/latitude or named keys)
+$city->location = [2.3522, 48.8566]; // [longitude, latitude]
+// OR
+$city->location = ['longitude' => 2.3522, 'latitude' => 48.8566];
 $city->save();
 
 // Get coordinates
-$latitude = $city->latitude;
-$longitude = $city->longitude;
+$latitude = $city->latitude;   // 48.8566
+$longitude = $city->longitude; // 2.3522
 
-// Find nearby cities (within 10km)
+// Find points within a radius (in kilometers)
 $nearbyCities = City::nearby(48.8566, 2.3522, 10)->get();
 
-// Find cities within bounds
+// Find points within a circular area (alias for nearby)
+$citiesInCircle = City::withinCircle(48.8566, 2.3522, 50)->get();
+
+// Find points within a rectangular bounding box
 $cities = City::withinBounds($minLat, $minLng, $maxLat, $maxLng)->get();
+
+// Find points within a polygon
+$polygon = [
+    [-5.0, 42.0],  // [longitude, latitude]
+    [8.0, 42.0],
+    [8.0, 51.0],
+    [-5.0, 51.0],
+];
+$citiesInPolygon = City::withinPolygon($polygon)->get();
+
+// Calculate distance between two points (returns kilometers)
+$distance = $city->distanceTo(45.7640, 4.8357); // Distance from city to Lyon
 ```
 
-**Polygon Geometry Usage:**
+#### Polygon Geometry Usage
+
+The `HasPolygon` trait provides methods for working with POLYGON geometry columns:
 
 ```php
 use OiLab\OiLaravelGeo\Traits\HasPolygon;
@@ -309,22 +366,73 @@ class Department extends BaseDepartment
     protected $fillable = ['boundary', ...];
 }
 
-// Set boundary
+// Set boundary (coordinates will automatically close the polygon)
 $department->boundary = [
-    [2.3, 48.8],
+    [2.3, 48.8],  // [longitude, latitude]
     [2.4, 48.9],
     [2.5, 48.8],
-    [2.3, 48.8], // Closed polygon
+    // No need to repeat the first point, it's added automatically
 ];
+$department->save();
 
 // Get coordinates
-$coordinates = $department->boundary_coordinates;
+$coordinates = $department->boundary_coordinates; // Returns original coordinates
 
-// Find departments containing a point
+// Find polygons that contain a specific point
 $departments = Department::containsPoint(48.8566, 2.3522)->get();
 
-// Calculate area
+// Find polygons that intersect with another polygon
+$overlappingPolygon = [
+    [0.0, 45.0],
+    [10.0, 45.0],
+    [10.0, 50.0],
+    [0.0, 50.0],
+];
+$intersecting = Department::intersects($overlappingPolygon)->get();
+// OR use the explicit method name
+$intersecting = Department::intersectsPolygon($overlappingPolygon)->get();
+
+// Find polygons that intersect with a rectangular bounding box
+$departments = Department::intersectsBounds($minLat, $minLng, $maxLat, $maxLng)->get();
+// OR use the alias
+$departments = Department::intersectsRectangle($minLat, $minLng, $maxLat, $maxLng)->get();
+
+// Find polygons that intersect with a circle
+$departments = Department::intersectsCircle(48.8566, 2.3522, 100)->get();
+
+// Calculate polygon area in square kilometers
 $areaKm2 = $department->getAreaInSquareKilometers();
+```
+
+#### Query Examples
+
+**Find all cities within 50km of Paris:**
+```php
+$cities = City::nearby(48.8566, 2.3522, 50)
+    ->orderBy('name')
+    ->get();
+```
+
+**Find all departments containing a specific GPS coordinate:**
+```php
+$departments = Department::containsPoint(48.8566, 2.3522)->get();
+foreach ($departments as $dept) {
+    echo "You are in: {$dept->name}\n";
+}
+```
+
+**Find all regions that intersect with a bounding box:**
+```php
+// Define a bounding box around Paris area
+$regions = Region::intersectsBounds(48.5, 2.0, 49.0, 3.0)->get();
+```
+
+**Complex query combining spatial and traditional filters:**
+```php
+$largeCitiesNearParis = City::nearby(48.8566, 2.3522, 100)
+    ->where('population', '>', 100000)
+    ->orderBy('population', 'desc')
+    ->get();
 ```
 
 ## Publishing Assets

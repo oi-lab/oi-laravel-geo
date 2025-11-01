@@ -16,7 +16,7 @@ class OiLaravelGeoServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton('oi-laravel-geo', function () {
-            return new OiLaravelGeoManager();
+            return new OiLaravelGeoManager;
         });
     }
 
