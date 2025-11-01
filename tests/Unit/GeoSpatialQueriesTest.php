@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Database\Schema\Blueprint;
+use insee\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint;
 use OiLab\OiLaravelGeo\Traits\HasPoint;
 use OiLab\OiLaravelGeo\Traits\HasPolygon;
 
