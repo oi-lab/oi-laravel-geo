@@ -51,6 +51,18 @@ class {$modelName} extends Base{$modelName}
 PHP;
     }
 
+    /**
+     * @var array<string, string>
+     */
+    protected const MODEL_TABLES = [
+        'country' => 'countries',
+        'region' => 'regions',
+        'department' => 'departments',
+        'city' => 'cities',
+        'borough' => 'boroughs',
+        'address' => 'addresses',
+    ];
+
     protected function getTraitsForModel(string $modelName): array
     {
         $traits = [];
@@ -60,8 +72,9 @@ PHP;
         }
 
         $modelNameLower = strtolower($modelName);
+        $table = self::MODEL_TABLES[$modelNameLower] ?? $modelNameLower;
 
-        if (! in_array($modelNameLower.'s', $this->configuration['geometry_models'] ?? [])) {
+        if (! in_array($table, $this->configuration['geometry_models'] ?? [])) {
             return $traits;
         }
 
@@ -102,7 +115,9 @@ PHP;
 
         // Add geometry fields if applicable
         if ($this->configuration['enable_geometry'] ?? false) {
-            if (in_array($modelNameLower.'s', $this->configuration['geometry_models'] ?? [])) {
+            $table = self::MODEL_TABLES[$modelNameLower] ?? $modelNameLower;
+
+            if (in_array($table, $this->configuration['geometry_models'] ?? [])) {
                 switch ($modelNameLower) {
                     case 'city':
                         $baseFillable[] = 'location';

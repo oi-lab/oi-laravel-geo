@@ -39,6 +39,13 @@ class PointCast implements CastsAttributes
         if (is_string($value)) {
             $decoded = json_decode($value, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                if (isset($decoded['longitude'], $decoded['latitude'])) {
+                    return [
+                        'longitude' => (float) $decoded['longitude'],
+                        'latitude' => (float) $decoded['latitude'],
+                    ];
+                }
+
                 return $decoded;
             }
         }
@@ -73,7 +80,7 @@ class PointCast implements CastsAttributes
         // For PostgreSQL with native POINT type
         if ($this->isPostgreSQL($model)) {
             // Return WKT format for PostgreSQL
-            return DB::raw("ST_GeomFromText('POINT({$longitude} {$latitude})', " . config('oi-laravel-geo.srid', 4326) . ')');
+            return DB::raw("ST_GeomFromText('POINT({$longitude} {$latitude})', ".config('oi-laravel-geo.srid', 4326).')');
         }
 
         // For MySQL/SQLite, store as JSON

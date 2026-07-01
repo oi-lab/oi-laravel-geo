@@ -1,0 +1,7 @@
+{
+    "type": "package",
+    "name": "oi-lab/oi-laravel-geo",
+    "title": "OI Laravel Geo",
+    "description": "Hierarchical geographic data management with optional spatial support",
+    "order": 20
+}

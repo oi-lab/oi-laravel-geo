@@ -5,6 +5,7 @@ use OiLab\OiLaravelGeo\Services\ModelGenerator;
 
 it('can generate migrations with geometry support', function () {
     $configuration = [
+        'database' => 'pgsql',
         'enable_geometry' => true,
         'geometry_models' => ['cities', 'addresses'],
         'address_include_city' => false,

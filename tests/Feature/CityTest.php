@@ -1,12 +1,13 @@
 <?php
 
+use Illuminate\Database\QueryException;
 use OiLab\OiLaravelGeo\Models\Borough;
 use OiLab\OiLaravelGeo\Models\City;
 use OiLab\OiLaravelGeo\Models\Country;
 use OiLab\OiLaravelGeo\Models\Department;
 use OiLab\OiLaravelGeo\Models\Region;
 
-it('can create a borough', function () {
+it('can create a city', function () {
     $country = Country::create(['code' => 'FR', 'name' => 'France']);
     $region = Region::create([
         'country_id' => $country->id,
@@ -18,30 +19,26 @@ it('can create a borough', function () {
         'code' => '75',
         'name' => 'Paris',
     ]);
+
     $city = City::create([
         'department_id' => $department->id,
         'identifier' => '75056',
         'code' => '75056',
         'name' => 'Paris',
+        'population' => 2200000,
+        'surface' => 105,
     ]);
 
-    $borough = Borough::create([
-        'city_id' => $city->id,
-        'code' => '01',
-        'name' => '1er Arrondissement',
-        'population' => 16000,
-        'surface' => 183,
-    ]);
-
-    expect($borough)
-        ->city_id->toBe($city->id)
-        ->code->toBe('01')
-        ->name->toBe('1er Arrondissement')
-        ->population->toBe(16000)
-        ->surface->toBe(183);
+    expect($city)
+        ->department_id->toBe($department->id)
+        ->identifier->toBe('75056')
+        ->code->toBe('75056')
+        ->name->toBe('Paris')
+        ->population->toBe(2200000)
+        ->surface->toBe(105);
 });
 
-it('belongs to a city', function () {
+it('belongs to a department', function () {
     $country = Country::create(['code' => 'FR', 'name' => 'France']);
     $region = Region::create([
         'country_id' => $country->id,
@@ -53,6 +50,7 @@ it('belongs to a city', function () {
         'code' => '75',
         'name' => 'Paris',
     ]);
+
     $city = City::create([
         'department_id' => $department->id,
         'identifier' => '75056',
@@ -60,16 +58,10 @@ it('belongs to a city', function () {
         'name' => 'Paris',
     ]);
 
-    $borough = Borough::create([
-        'city_id' => $city->id,
-        'code' => '01',
-        'name' => '1er Arrondissement',
-    ]);
-
-    expect($borough->city->id)->toBe($city->id);
+    expect($city->department->id)->toBe($department->id);
 });
 
-it('requires unique code per city', function () {
+it('requires unique identifier', function () {
     $country = Country::create(['code' => 'FR', 'name' => 'France']);
     $region = Region::create([
         'country_id' => $country->id,
@@ -81,27 +73,51 @@ it('requires unique code per city', function () {
         'code' => '75',
         'name' => 'Paris',
     ]);
-    $city = City::create([
+
+    City::create([
         'department_id' => $department->id,
         'identifier' => '75056',
         'code' => '75056',
         'name' => 'Paris',
     ]);
 
-    Borough::create([
-        'city_id' => $city->id,
-        'code' => '01',
-        'name' => '1er Arrondissement',
-    ]);
-
-    expect(fn () => Borough::create([
-        'city_id' => $city->id,
-        'code' => '01',
+    expect(fn () => City::create([
+        'department_id' => $department->id,
+        'identifier' => '75056',
+        'code' => '75057',
         'name' => 'Duplicate',
-    ]))->toThrow(\Illuminate\Database\QueryException::class);
+    ]))->toThrow(QueryException::class);
 });
 
-it('cascades deletion from city', function () {
+it('requires unique code per department', function () {
+    $country = Country::create(['code' => 'FR', 'name' => 'France']);
+    $region = Region::create([
+        'country_id' => $country->id,
+        'code' => 'IDF',
+        'name' => 'Île-de-France',
+    ]);
+    $department = Department::create([
+        'region_id' => $region->id,
+        'code' => '75',
+        'name' => 'Paris',
+    ]);
+
+    City::create([
+        'department_id' => $department->id,
+        'identifier' => '75056',
+        'code' => '001',
+        'name' => 'Paris',
+    ]);
+
+    expect(fn () => City::create([
+        'department_id' => $department->id,
+        'identifier' => '75057',
+        'code' => '001',
+        'name' => 'Duplicate',
+    ]))->toThrow(QueryException::class);
+});
+
+it('cascades deletion from department', function () {
     $country = Country::create(['code' => 'FR', 'name' => 'France']);
     $region = Region::create([
         'country_id' => $country->id,
@@ -119,49 +135,13 @@ it('cascades deletion from city', function () {
         'code' => '75056',
         'name' => 'Paris',
     ]);
-    $borough = Borough::create([
-        'city_id' => $city->id,
-        'code' => '01',
-        'name' => '1er Arrondissement',
-    ]);
 
-    $city->delete();
+    $department->delete();
 
-    expect(Borough::find($borough->id))->toBeNull();
+    expect(City::find($city->id))->toBeNull();
 });
 
-it('casts population and surface to integers', function () {
-    $country = Country::create(['code' => 'FR', 'name' => 'France']);
-    $region = Region::create([
-        'country_id' => $country->id,
-        'code' => 'IDF',
-        'name' => 'Île-de-France',
-    ]);
-    $department = Department::create([
-        'region_id' => $region->id,
-        'code' => '75',
-        'name' => 'Paris',
-    ]);
-    $city = City::create([
-        'department_id' => $department->id,
-        'identifier' => '75056',
-        'code' => '75056',
-        'name' => 'Paris',
-    ]);
-
-    $borough = Borough::create([
-        'city_id' => $city->id,
-        'code' => '01',
-        'name' => '1er Arrondissement',
-        'population' => '16000',
-        'surface' => '183',
-    ]);
-
-    expect($borough->population)->toBeInt()
-        ->and($borough->surface)->toBeInt();
-});
-
-it('allows nullable population and surface', function () {
+it('has many boroughs', function () {
     $country = Country::create(['code' => 'FR', 'name' => 'France']);
     $region = Region::create([
         'country_id' => $country->id,
@@ -186,6 +166,7 @@ it('allows nullable population and surface', function () {
         'name' => '1er Arrondissement',
     ]);
 
-    expect($borough->population)->toBeNull()
-        ->and($borough->surface)->toBeNull();
+    expect($city->boroughs)
+        ->toHaveCount(1)
+        ->first()->id->toBe($borough->id);
 });

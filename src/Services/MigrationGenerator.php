@@ -118,7 +118,7 @@ class MigrationGenerator
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use insee\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -156,7 +156,7 @@ PHP;
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use insee\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -196,7 +196,7 @@ PHP;
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use insee\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -233,14 +233,14 @@ PHP;
         $geometryColumns = '';
 
         if ($hasGeometry) {
-            $geometryColumns = $this->getPointColumn('location') . $this->getPolygonColumn('boundary');
+            $geometryColumns = $this->getPointColumn('location').$this->getPolygonColumn('boundary');
         }
 
         return <<<PHP
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use insee\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -282,7 +282,7 @@ PHP;
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use insee\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -339,7 +339,7 @@ PHP;
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use insee\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration

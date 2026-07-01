@@ -46,13 +46,13 @@ class PolygonCast implements CastsAttributes
         if (is_string($value)) {
             $decoded = json_decode($value, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return $decoded;
+                return $this->normalizePoints($decoded);
             }
         }
 
         // Already an array
         if (is_array($value)) {
-            return $value;
+            return $this->normalizePoints($value);
         }
 
         return null;
@@ -83,7 +83,7 @@ class PolygonCast implements CastsAttributes
             $firstPoint = $value[0];
             $points .= ", {$firstPoint[0]} {$firstPoint[1]}";
 
-            return DB::raw("ST_GeomFromText('POLYGON(({$points}))', " . config('oi-laravel-geo.srid', 4326) . ')');
+            return DB::raw("ST_GeomFromText('POLYGON(({$points}))', ".config('oi-laravel-geo.srid', 4326).')');
         }
 
         // For MySQL/SQLite, store as JSON
@@ -96,6 +96,20 @@ class PolygonCast implements CastsAttributes
         }, $value);
 
         return json_encode($normalized);
+    }
+
+    /**
+     * Ensure every [lng, lat] pair is a float pair (JSON drops trailing .0).
+     *
+     * @param  array<int, array<int, mixed>>  $points
+     * @return array<int, array<int, float>>
+     */
+    protected function normalizePoints(array $points): array
+    {
+        return array_map(
+            fn ($point) => [(float) $point[0], (float) $point[1]],
+            $points
+        );
     }
 
     /**

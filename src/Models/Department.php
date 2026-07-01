@@ -5,7 +5,7 @@ namespace OiLab\OiLaravelGeo\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use OiLab\OiLaravelGeo\Facades\OiGeo;
+use OiLab\OiLaravelGeo\Data\DepartmentData;
 use OiLab\OiLaravelGeo\Facades\OiLaravelGeo;
 
 class Department extends Model
@@ -40,5 +40,10 @@ class Department extends Model
     public function cities(): HasMany
     {
         return $this->hasMany(OiLaravelGeo::getCityModel());
+    }
+
+    public function toData(): DepartmentData
+    {
+        return DepartmentData::fromModel($this);
     }
 }

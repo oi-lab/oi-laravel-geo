@@ -3,6 +3,7 @@
 namespace OiLab\OiLaravelGeo\Facades;
 
 use Illuminate\Support\Facades\Facade;
+use OiLab\OiLaravelGeo\OiLaravelGeoManager;
 
 /**
  * @method static string getCountryModel()
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static string getAddressModel()
  * @method static bool isGeometryEnabled()
  *
- * @see \OiLab\OiLaravelGeo\OiLaravelGeoManager
+ * @see OiLaravelGeoManager
  */
 class OiLaravelGeo extends Facade
 {

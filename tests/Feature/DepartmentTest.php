@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Database\QueryException;
 use OiLab\OiLaravelGeo\Models\City;
 use OiLab\OiLaravelGeo\Models\Country;
 use OiLab\OiLaravelGeo\Models\Department;
@@ -89,7 +90,7 @@ it('requires unique code per region', function () {
         'region_id' => $region->id,
         'code' => '75',
         'name' => 'Duplicate',
-    ]))->toThrow(\Illuminate\Database\QueryException::class);
+    ]))->toThrow(QueryException::class);
 });
 
 it('cascades deletion from region', function () {

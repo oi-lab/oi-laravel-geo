@@ -2,14 +2,14 @@
 
 namespace OiLab\OiLaravelGeo\Services;
 
-use OiLab\OiLaravelGeo\Facades\OiGeo;
+use OiLab\OiLaravelGeo\Facades\OiLaravelGeo;
 
 class BoroughImporter extends AbstractGeoJsonImporter
 {
     protected function importFeature(array $properties): bool
     {
-        $boroughModel = OiGeo::getBoroughModel();
-        $cityModel = OiGeo::getCityModel();
+        $boroughModel = OiLaravelGeo::getBoroughModel();
+        $cityModel = OiLaravelGeo::getCityModel();
 
         $city = $cityModel::query()->where('identifier', $properties['city_identifier'])->first();
 

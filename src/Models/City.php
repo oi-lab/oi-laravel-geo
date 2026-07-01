@@ -5,7 +5,7 @@ namespace OiLab\OiLaravelGeo\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use OiLab\OiLaravelGeo\Facades\OiGeo;
+use OiLab\OiLaravelGeo\Data\CityData;
 use OiLab\OiLaravelGeo\Facades\OiLaravelGeo;
 
 class City extends Model
@@ -46,5 +46,10 @@ class City extends Model
     public function addresses(): HasMany
     {
         return $this->hasMany(OiLaravelGeo::getAddressModel());
+    }
+
+    public function toData(): CityData
+    {
+        return CityData::fromModel($this);
     }
 }

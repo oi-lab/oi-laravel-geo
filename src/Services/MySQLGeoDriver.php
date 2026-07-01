@@ -3,7 +3,6 @@
 namespace OiLab\OiLaravelGeo\Services;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 /**
  * MySQL-specific implementation for geospatial queries.

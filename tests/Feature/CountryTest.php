@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Database\QueryException;
 use OiLab\OiLaravelGeo\Models\Country;
 use OiLab\OiLaravelGeo\Models\Region;
 
@@ -27,7 +28,7 @@ it('requires unique country code', function () {
     expect(fn () => Country::create([
         'code' => 'FR',
         'name' => 'France Duplicate',
-    ]))->toThrow(\Illuminate\Database\QueryException::class);
+    ]))->toThrow(QueryException::class);
 });
 
 it('has many regions', function () {

@@ -4,7 +4,7 @@ namespace OiLab\OiLaravelGeo\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use OiLab\OiLaravelGeo\Facades\OiGeo;
+use OiLab\OiLaravelGeo\Data\AddressData;
 use OiLab\OiLaravelGeo\Facades\OiLaravelGeo;
 
 class Address extends Model
@@ -99,5 +99,10 @@ class Address extends Model
         ]);
 
         return implode(', ', $parts);
+    }
+
+    public function toData(): AddressData
+    {
+        return AddressData::fromModel($this);
     }
 }

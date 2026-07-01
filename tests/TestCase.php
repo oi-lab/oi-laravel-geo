@@ -2,40 +2,33 @@
 
 namespace OiLab\OiLaravelGeo\Tests;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use OiLab\OiLaravelGeo\OiLaravelGeoServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Spatie\LaravelData\LaravelDataServiceProvider;
 
-class TestCase extends Orchestra
+abstract class TestCase extends Orchestra
 {
-    use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->setUpDatabase();
-    }
-
     protected function getPackageProviders($app): array
     {
         return [
+            LaravelDataServiceProvider::class,
             OiLaravelGeoServiceProvider::class,
         ];
     }
 
-    protected function getEnvironmentSetUp($app): void
+    protected function defineEnvironment($app): void
     {
-        config()->set('database.default', 'testing');
-        config()->set('database.connections.testing', [
+        $app['config']->set('database.default', 'testing');
+        $app['config']->set('database.connections.testing', [
             'driver' => 'sqlite',
             'database' => ':memory:',
             'prefix' => '',
+            'foreign_key_constraints' => true,
         ]);
     }
 
-    protected function setUpDatabase(): void
+    protected function defineDatabaseMigrations(): void
     {
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadMigrationsFrom(__DIR__.'/Fixtures/database/migrations');
     }
 }

@@ -1,17 +1,18 @@
 <?php
 
-use insee\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Schema\Blueprint;
 use OiLab\OiLaravelGeo\Traits\HasPoint;
 use OiLab\OiLaravelGeo\Traits\HasPolygon;
 
 beforeEach(function () {
     // Create a test model with HasPoint trait
-    $this->createPointTestTable();
-    $this->createPolygonTestTable();
+    createPointTestTable();
+    createPolygonTestTable();
 });
 
 it('can find points within radius', function () {
-    $model = new class extends \Illuminate\Database\Eloquent\Model
+    $model = new class extends Model
     {
         use HasPoint;
 
@@ -42,7 +43,7 @@ it('can find points within radius', function () {
 });
 
 it('can find points within bounds', function () {
-    $model = new class extends \Illuminate\Database\Eloquent\Model
+    $model = new class extends Model
     {
         use HasPoint;
 
@@ -76,7 +77,7 @@ it('can find points within bounds', function () {
 });
 
 it('can find points within circle', function () {
-    $model = new class extends \Illuminate\Database\Eloquent\Model
+    $model = new class extends Model
     {
         use HasPoint;
 
@@ -98,7 +99,7 @@ it('can find points within circle', function () {
 });
 
 it('can find points within polygon', function () {
-    $model = new class extends \Illuminate\Database\Eloquent\Model
+    $model = new class extends Model
     {
         use HasPoint;
 
@@ -128,7 +129,7 @@ it('can find points within polygon', function () {
 });
 
 it('can calculate distance between points', function () {
-    $model = new class extends \Illuminate\Database\Eloquent\Model
+    $model = new class extends Model
     {
         use HasPoint;
 
@@ -150,7 +151,7 @@ it('can calculate distance between points', function () {
 });
 
 it('can find polygons containing a point', function () {
-    $model = new class extends \Illuminate\Database\Eloquent\Model
+    $model = new class extends Model
     {
         use HasPolygon;
 
@@ -192,7 +193,7 @@ it('can find polygons containing a point', function () {
 });
 
 it('can find polygons intersecting with another polygon', function () {
-    $model = new class extends \Illuminate\Database\Eloquent\Model
+    $model = new class extends Model
     {
         use HasPolygon;
 
@@ -239,7 +240,7 @@ it('can find polygons intersecting with another polygon', function () {
 });
 
 it('can find polygons intersecting with bounds', function () {
-    $model = new class extends \Illuminate\Database\Eloquent\Model
+    $model = new class extends Model
     {
         use HasPolygon;
 
@@ -268,7 +269,7 @@ it('can find polygons intersecting with bounds', function () {
 });
 
 it('can extract coordinates from point', function () {
-    $model = new class extends \Illuminate\Database\Eloquent\Model
+    $model = new class extends Model
     {
         use HasPoint;
 
@@ -287,7 +288,7 @@ it('can extract coordinates from point', function () {
 });
 
 it('can extract coordinates from polygon', function () {
-    $model = new class extends \Illuminate\Database\Eloquent\Model
+    $model = new class extends Model
     {
         use HasPolygon;
 
@@ -316,22 +317,22 @@ it('can extract coordinates from polygon', function () {
 // Helper functions to create test tables
 function createPointTestTable(): void
 {
-    if (! \Schema::hasTable('point_test')) {
-        \Schema::create('point_test', function (Blueprint $table) {
+    if (! Schema::hasTable('point_test')) {
+        Schema::create('point_test', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->point('location')->nullable();
+            $table->json('location')->nullable();
         });
     }
 }
 
 function createPolygonTestTable(): void
 {
-    if (! \Schema::hasTable('polygon_test')) {
-        \Schema::create('polygon_test', function (Blueprint $table) {
+    if (! Schema::hasTable('polygon_test')) {
+        Schema::create('polygon_test', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->polygon('boundary')->nullable();
+            $table->json('boundary')->nullable();
         });
     }
 }

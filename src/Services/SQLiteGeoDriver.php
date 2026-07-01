@@ -63,10 +63,19 @@ class SQLiteGeoDriver implements GeoQueryDriverInterface
 
     public function polygonContainsPoint(Builder $query, string $column, float $latitude, float $longitude): Builder
     {
-        // SQLite doesn't have built-in polygon functions
-        // This is a simplified implementation checking if column is not null
-        // For accurate results, use SpatiaLite extension or PostgreSQL
-        return $query->whereNotNull($column);
+        // Bounding-box check over the JSON [[lng, lat], ...] coordinates.
+        // For exact point-in-polygon results, use SpatiaLite or PostgreSQL.
+        return $query->whereNotNull($column)
+            ->whereRaw(
+                "CAST(? AS REAL) BETWEEN (SELECT MIN(CAST(json_extract(je.value, '$[0]') AS REAL)) FROM json_each({$column}) je)
+                       AND (SELECT MAX(CAST(json_extract(je.value, '$[0]') AS REAL)) FROM json_each({$column}) je)",
+                [$longitude]
+            )
+            ->whereRaw(
+                "CAST(? AS REAL) BETWEEN (SELECT MIN(CAST(json_extract(je.value, '$[1]') AS REAL)) FROM json_each({$column}) je)
+                       AND (SELECT MAX(CAST(json_extract(je.value, '$[1]') AS REAL)) FROM json_each({$column}) je)",
+                [$latitude]
+            );
     }
 
     public function polygonIntersectsPolygon(Builder $query, string $column, array $coordinates): Builder

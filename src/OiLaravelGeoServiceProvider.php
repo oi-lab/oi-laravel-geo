@@ -35,6 +35,10 @@ class OiLaravelGeoServiceProvider extends ServiceProvider
                 __DIR__.'/../resources/geojson' => resource_path('geojson'),
             ], 'oi-laravel-geo-geojson');
 
+            $this->publishes([
+                __DIR__.'/../resources/stubs/ai-skill.md' => base_path('.claude/skills/oilab-laravel-geo/SKILL.md'),
+            ], 'oi-laravel-geo-skill');
+
             $this->commands([
                 InstallOiLaravelGeoCommand::class,
                 SeedGeoDataCommand::class,

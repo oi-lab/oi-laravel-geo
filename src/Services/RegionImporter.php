@@ -2,14 +2,14 @@
 
 namespace OiLab\OiLaravelGeo\Services;
 
-use OiLab\OiLaravelGeo\Facades\OiGeo;
+use OiLab\OiLaravelGeo\Facades\OiLaravelGeo;
 
 class RegionImporter extends AbstractGeoJsonImporter
 {
     protected function importFeature(array $properties): bool
     {
-        $regionModel = OiGeo::getRegionModel();
-        $countryModel = OiGeo::getCountryModel();
+        $regionModel = OiLaravelGeo::getRegionModel();
+        $countryModel = OiLaravelGeo::getCountryModel();
 
         $country = $countryModel::query()->where('code', $properties['country_code'])->first();
 

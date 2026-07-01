@@ -52,7 +52,7 @@ it('can import countries from geojson', function () {
 
 it('throws exception for missing geojson file', function () {
     expect(fn () => $this->countryImporter->import('/nonexistent/file.geojson'))
-        ->toThrow(\RuntimeException::class, 'GeoJSON file not found');
+        ->toThrow(RuntimeException::class, 'GeoJSON file not found');
 });
 
 it('throws exception for invalid geojson format', function () {
@@ -60,7 +60,7 @@ it('throws exception for invalid geojson format', function () {
     file_put_contents($tempFile, json_encode(['invalid' => 'format']));
 
     expect(fn () => $this->countryImporter->import($tempFile))
-        ->toThrow(\RuntimeException::class, 'Invalid GeoJSON format');
+        ->toThrow(RuntimeException::class, 'Invalid GeoJSON format');
 
     unlink($tempFile);
 });

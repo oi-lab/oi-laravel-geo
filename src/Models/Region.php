@@ -5,7 +5,7 @@ namespace OiLab\OiLaravelGeo\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use OiLab\OiLaravelGeo\Facades\OiGeo;
+use OiLab\OiLaravelGeo\Data\RegionData;
 use OiLab\OiLaravelGeo\Facades\OiLaravelGeo;
 
 class Region extends Model
@@ -40,5 +40,10 @@ class Region extends Model
     public function departments(): HasMany
     {
         return $this->hasMany(OiLaravelGeo::getDepartmentModel());
+    }
+
+    public function toData(): RegionData
+    {
+        return RegionData::fromModel($this);
     }
 }

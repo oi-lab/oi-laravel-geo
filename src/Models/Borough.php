@@ -4,7 +4,7 @@ namespace OiLab\OiLaravelGeo\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use OiLab\OiLaravelGeo\Facades\OiGeo;
+use OiLab\OiLaravelGeo\Data\BoroughData;
 use OiLab\OiLaravelGeo\Facades\OiLaravelGeo;
 
 class Borough extends Model
@@ -34,5 +34,10 @@ class Borough extends Model
     public function city(): BelongsTo
     {
         return $this->belongsTo(OiLaravelGeo::getCityModel());
+    }
+
+    public function toData(): BoroughData
+    {
+        return BoroughData::fromModel($this);
     }
 }
