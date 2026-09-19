@@ -2,13 +2,14 @@
 
 namespace OiLab\OiLaravelGeo\Data;
 
+use Carbon\CarbonInterface;
 use OiLab\OiLaravelGeo\Models\Address;
 use Spatie\LaravelData\Data;
 
 class AddressData extends Data
 {
     public function __construct(
-        public readonly int $id,
+        public readonly int|string $id,
         public readonly string $street_1,
         public readonly string $postal_code,
         public readonly ?string $name = null,
@@ -20,6 +21,15 @@ class AddressData extends Data
         public readonly ?int $department_id = null,
         public readonly ?int $region_id = null,
         public readonly ?string $full_address = null,
+        public readonly ?string $addressable_type = null,
+        public readonly int|string|null $addressable_id = null,
+        public readonly bool $is_default = false,
+        public readonly ?float $latitude = null,
+        public readonly ?float $longitude = null,
+        public readonly ?string $geocoded_label = null,
+        public readonly ?float $geocoding_score = null,
+        public readonly ?string $ban_id = null,
+        public readonly ?CarbonInterface $geocoded_at = null,
     ) {}
 
     public static function fromModel(Address $address): self
@@ -37,6 +47,15 @@ class AddressData extends Data
             department_id: $address->department_id,
             region_id: $address->region_id,
             full_address: $address->full_address,
+            addressable_type: $address->addressable_type,
+            addressable_id: $address->addressable_id,
+            is_default: (bool) $address->is_default,
+            latitude: $address->latitude !== null ? (float) $address->latitude : null,
+            longitude: $address->longitude !== null ? (float) $address->longitude : null,
+            geocoded_label: $address->geocoded_label,
+            geocoding_score: $address->geocoding_score !== null ? (float) $address->geocoding_score : null,
+            ban_id: $address->ban_id,
+            geocoded_at: $address->geocoded_at,
         );
     }
 }

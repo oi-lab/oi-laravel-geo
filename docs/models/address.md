@@ -144,6 +144,11 @@ Address::hasCountryRelation(); // bool
 Address::hasRegionRelation(); // bool
 Address::hasDepartmentRelation(); // bool
 Address::hasCityRelation(); // bool
+
+// Check which opt-in capabilities are on
+Address::isMorphable();          // bool — address_morphable
+Address::usesUlidKey();          // bool — address_key_type === 'ulid'
+Address::hasGeocodingColumns();  // bool — address_geocoding
 ```
 
 Use these in conditionals:
@@ -164,7 +169,7 @@ The Address model manages the following columns based on configuration:
 
 | Column | Type | Always Present | Conditional |
 |--------|------|---|---|
-| `id` | bigint unsigned | ✓ | |
+| `id` | bigint unsigned / ulid | ✓ | `ulid('id')` if `address_key_type='ulid'` |
 | `street` | string(255) | ✓ | |
 | `city` | string(100) | ✓ | Only if `include_city=false` |
 | `city_id` | bigint unsigned | | Only if `include_city=true` |
@@ -173,8 +178,133 @@ The Address model manages the following columns based on configuration:
 | `department_id` | bigint unsigned | | Only if `include_department=true` |
 | `postal_code` | string(20) | ✓ | |
 | `location` | geometry (point) | | Only if `enable_geometry=true` |
+| `addressable_type` | string(255) | | Only if `address_morphable=true` |
+| `addressable_id` | string(36) | | Only if `address_morphable=true` |
+| `is_default` | boolean | | Only if `address_morphable=true` |
+| `latitude` | decimal(10,7) | | Only if `address_geocoding=true` |
+| `longitude` | decimal(10,7) | | Only if `address_geocoding=true` |
+| `geocoded_label` | string(255) | | Only if `address_geocoding=true` |
+| `geocoding_score` | decimal(4,3) | | Only if `address_geocoding=true` |
+| `ban_id` | string(32) | | Only if `address_geocoding=true` |
+| `geocoded_at` | timestamp | | Only if `address_geocoding=true` |
 | `created_at` | timestamp | ✓ | |
 | `updated_at` | timestamp | ✓ | |
+
+## Polymorphic Addresses
+
+Enable `address_morphable` to attach an address to any model — a member's home,
+a team's office, a customer's sites:
+
+```php
+use OiLab\OiLaravelGeo\Concerns\HasAddresses;
+
+class Team extends Model
+{
+    use HasAddresses;
+}
+```
+
+The trait provides three methods:
+
+```php
+$team->addresses();        // MorphMany
+$team->defaultAddress();   // ?Address — the one flagged is_default, or null
+$team->addAddress([
+    'street_1' => '1 Place de la Comédie',
+    'city' => 'Montpellier',
+    'postal_code' => '34000',
+], default: true);
+```
+
+And the address points back through a `morphTo()`:
+
+```php
+$address->addressable;         // the holder model
+$address->addressable_type;    // its class name
+```
+
+### Why `string(36)` and not `morphs()`
+
+`addressable_id` is declared as an explicit `string(36)` column, not through
+`$table->morphs()` or `$table->ulidMorphs()`.
+
+Address holders legitimately have different key types in the same application:
+a `User` and a `Team` on an auto-incrementing bigint, an `Entity` on a ULID. A
+morph helper commits the column to one type and breaks the others. A
+36-character string holds all of them — a bigint, a ULID (26 characters) and a
+UUID (36 characters) — and Eloquent compares them correctly in both
+directions.
+
+The `['addressable_type', 'addressable_id']` index is declared by hand for the
+same reason. Do not "simplify" this back to `morphs()`.
+
+### One default per holder
+
+`is_default` is added together with the morph columns: the flag only means
+something relative to a holder.
+
+MySQL has no partial unique index, so the constraint cannot be declarative. It
+is enforced on write by `OiLab\OiLaravelGeo\Observers\AddressObserver`, which
+flips the holder's other defaults to `false` whenever an address is saved as
+the default. Other holders are never touched.
+
+## ULID Primary Key
+
+Set `address_key_type` to `'ulid'` to swap `$table->id()` for
+`$table->ulid('id')->primary()` in the generated migration. The default `'id'`
+keeps the auto-incrementing bigint.
+
+```php
+config(['oi-laravel-geo.address_key_type' => 'ulid']);
+
+$address = Address::create([...]);
+$address->id;                  // "01JN4Z6T8QK3W2F5RQY7X9B0CD"
+$address->getIncrementing();   // false
+$address->getKeyType();        // "string"
+```
+
+The model does not use the `HasUlids` trait: that trait decides the key type
+statically, while here it depends on the configuration, and a conditional
+`use` does not exist in PHP. `getKeyType()`, `getIncrementing()` and a
+`creating` hook that fills an empty key with `Str::ulid()` are implemented by
+hand in `Address` instead.
+
+## Geocoding Columns
+
+Enable `address_geocoding` to add six nullable columns:
+
+| Column | Type |
+|--------|------|
+| `latitude` | `decimal(10,7)` |
+| `longitude` | `decimal(10,7)` |
+| `geocoded_label` | `string(255)` |
+| `geocoding_score` | `decimal(4,3)` |
+| `ban_id` | `string(32)` |
+| `geocoded_at` | `timestamp` |
+
+```php
+$address->isGeocoded();     // true once latitude and longitude are both set
+$address->geocoding_score;  // "0.976"
+$address->toData();         // AddressData carries every field
+```
+
+### These do not replace `enable_geometry`
+
+The two mechanisms are independent and can be used together, separately, or
+not at all.
+
+`enable_geometry` stores a `Point` — a native geometry type on PostgreSQL, a
+JSON payload on MySQL and SQLite — which is what the spatial scopes query.
+
+The geocoding columns store readable decimals, for rounding a cache key, for
+comparing, for displaying, **and** metadata a `Point` cannot carry: the
+provider's confidence score and the BAN identifier.
+
+### The package does not geocode
+
+`oi-laravel-geo` carries the columns and the contract, never the network call.
+There is no dependency on any geocoding service. Filling these fields is the
+application's job.
 
 ## Spatial Support
 

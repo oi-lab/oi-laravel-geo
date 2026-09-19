@@ -16,6 +16,8 @@ support.
 
 - Hierarchical models: **Borough → City → Department → Region → Country**
 - **Address model** with flexible configuration (string city by default, optional City/Country/Department/Region relations)
+- Opt-in **polymorphic addresses** (`HasAddresses` trait, one default per holder) working across holders with mixed key types
+- Opt-in **ULID primary key** and **geocoding columns** (coordinates, score, BAN identifier) on addresses
 - Typed DTOs: every model exposes `toData()` returning a `spatie/laravel-data` object
 - Interactive installer generating database-aware migrations (`geo:install`)
 - GeoJSON import service for bulk data seeding (`geo:seed`)
@@ -87,8 +89,15 @@ return [
     'address_include_department' => false,
     'address_include_region' => false,
     'address_include_country' => false,
+    'address_morphable' => false,          // attach addresses to any model
+    'address_key_type' => 'id',            // 'id' (bigint) or 'ulid'
+    'address_geocoding' => false,          // latitude/longitude + BAN metadata
 ];
 ```
+
+The last three are opt-in and default to the pre-1.2 behaviour: an existing
+installation that upgrades without touching its config generates exactly the
+same migration and behaves exactly the same.
 
 ## Usage
 
@@ -122,6 +131,70 @@ $address->toData();              // AddressData DTO
 
 See the [Address documentation](docs/models/address.md) for the relation-based
 variants.
+
+### Attached Addresses and Geocoding
+
+Three independent opt-in capabilities, all off by default.
+
+**Polymorphic addresses** (`address_morphable`) add `addressable_type`,
+`addressable_id` and `is_default` to the table, and make the `HasAddresses`
+trait usable on any holder:
+
+```php
+use OiLab\OiLaravelGeo\Concerns\HasAddresses;
+
+class Team extends Model
+{
+    use HasAddresses;
+}
+
+$team->addAddress([
+    'street_1' => '1 Place de la Comédie',
+    'city' => 'Montpellier',
+    'postal_code' => '34000',
+], default: true);
+
+$team->addresses;          // MorphMany
+$team->defaultAddress();   // ?Address — the one flagged is_default
+$address->addressable;     // MorphTo back to the holder
+```
+
+`addressable_id` is a plain `string(36)`, not `$table->morphs()`. Holders
+legitimately have different key types — a `User` and a `Team` on an
+auto-incrementing bigint, an `Entity` on a ULID — and neither `morphs()` nor
+`ulidMorphs()` can be both at once. A 36-character string holds a bigint, a
+ULID (26 chars) and a UUID (36 chars) alike, and Eloquent compares them
+correctly in both directions. The `['addressable_type', 'addressable_id']`
+index is declared by hand for the same reason.
+
+Only one address per holder can be the default. MySQL has no partial unique
+index, so the invariant is enforced on write by `AddressObserver`, which flips
+the holder's other defaults to `false`.
+
+**ULID primary key** (`address_key_type = 'ulid'`) switches the table's key
+from `$table->id()` to `$table->ulid('id')->primary()`. The model implements
+`getKeyType()`, `getIncrementing()` and the `creating` hook by hand rather than
+using `HasUlids`, because that trait decides the key type statically while here
+it comes from the configuration.
+
+**Geocoding columns** (`address_geocoding`) add `latitude` and `longitude`
+(`decimal(10,7)`), `geocoded_label`, `geocoding_score` (`decimal(4,3)`),
+`ban_id` and `geocoded_at`:
+
+```php
+$address->isGeocoded();    // true once latitude and longitude are both set
+$address->toData();        // AddressData carries all of the above
+```
+
+These columns **do not replace `enable_geometry`** and the two mechanisms are
+independent. The geometry column stores a `Point` — native in PostgreSQL, JSON
+on MySQL and SQLite — which is what spatial queries need. The geocoding columns
+store readable decimals, for rounding a cache key, comparing, or displaying,
+plus metadata a `Point` cannot carry (the provider score, the BAN identifier).
+Enable either, both, or neither.
+
+**The package never geocodes.** It carries the columns and the contract, not
+the network call: filling them is the application's job.
 
 ### Importing GeoJSON Data
 

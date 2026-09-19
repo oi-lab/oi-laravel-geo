@@ -4,6 +4,8 @@ namespace OiLab\OiLaravelGeo\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Str;
 use OiLab\OiLaravelGeo\Data\AddressData;
 use OiLab\OiLaravelGeo\Facades\OiLaravelGeo;
 
@@ -20,6 +22,15 @@ class Address extends Model
         'country_id',
         'department_id',
         'region_id',
+        'addressable_type',
+        'addressable_id',
+        'is_default',
+        'latitude',
+        'longitude',
+        'geocoded_label',
+        'geocoding_score',
+        'ban_id',
+        'geocoded_at',
     ];
 
     protected function casts(): array
@@ -29,7 +40,58 @@ class Address extends Model
             'country_id' => 'integer',
             'department_id' => 'integer',
             'region_id' => 'integer',
+            'is_default' => 'boolean',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
+            'geocoding_score' => 'decimal:3',
+            'geocoded_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The ULID primary key cannot go through the `HasUlids` trait: that trait decides
+     * the key type statically, while here it depends on `address_key_type`. A conditional
+     * `use` does not exist in PHP and one subclass per case would be worse, so the three
+     * pieces `HasUlids` provides are implemented by hand below.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (self $address): void {
+            if (! static::usesUlidKey()) {
+                return;
+            }
+
+            $keyName = $address->getKeyName();
+
+            if (empty($address->{$keyName})) {
+                $address->{$keyName} = (string) Str::ulid();
+            }
+        });
+    }
+
+    public static function usesUlidKey(): bool
+    {
+        return config('oi-laravel-geo.address_key_type', 'id') === 'ulid';
+    }
+
+    public static function isMorphable(): bool
+    {
+        return config('oi-laravel-geo.address_morphable', false);
+    }
+
+    public static function hasGeocodingColumns(): bool
+    {
+        return config('oi-laravel-geo.address_geocoding', false);
+    }
+
+    public function getKeyType(): string
+    {
+        return static::usesUlidKey() ? 'string' : parent::getKeyType();
+    }
+
+    public function getIncrementing(): bool
+    {
+        return static::usesUlidKey() ? false : parent::getIncrementing();
     }
 
     public static function hasCityRelation(): bool
@@ -77,6 +139,11 @@ class Address extends Model
         return $this->belongsTo(OiLaravelGeo::getRegionModel());
     }
 
+    public function addressable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
     public function getCityNameAttribute(): ?string
     {
         if (self::hasCityRelation()) {
@@ -99,6 +166,11 @@ class Address extends Model
         ]);
 
         return implode(', ', $parts);
+    }
+
+    public function isGeocoded(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
     }
 
     public function toData(): AddressData

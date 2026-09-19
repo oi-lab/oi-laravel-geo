@@ -81,4 +81,45 @@ return [
     'address_include_department' => false,
     'address_include_region' => false,
     'address_include_country' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Polymorphic Addresses
+    |--------------------------------------------------------------------------
+    |
+    | Attach addresses to any model (user, team, company site...) through an
+    | `addressable_type` / `addressable_id` morph plus an `is_default` flag.
+    | Enabling this adds those columns to the addresses table migration and
+    | makes the `OiLab\OiLaravelGeo\Concerns\HasAddresses` trait usable.
+    |
+    */
+    'address_morphable' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Address Primary Key Type
+    |--------------------------------------------------------------------------
+    |
+    | Type of the addresses primary key: 'id' for an auto-incrementing bigint
+    | (default) or 'ulid' for a lexicographically sortable 26 character ULID.
+    |
+    | Supported: "id", "ulid"
+    |
+    */
+    'address_key_type' => 'id',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Address Geocoding Columns
+    |--------------------------------------------------------------------------
+    |
+    | Add decimal geocoding columns to addresses (latitude, longitude,
+    | geocoded_label, geocoding_score, ban_id, geocoded_at). These are
+    | independent from `enable_geometry`: the geometry column stores a Point,
+    | these store human-readable decimals plus geocoding metadata.
+    |
+    | The package never calls a geocoding API — it only carries the columns.
+    |
+    */
+    'address_geocoding' => false,
 ];

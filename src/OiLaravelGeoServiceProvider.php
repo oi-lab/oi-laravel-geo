@@ -5,6 +5,8 @@ namespace OiLab\OiLaravelGeo;
 use Illuminate\Support\ServiceProvider;
 use OiLab\OiLaravelGeo\Commands\InstallOiLaravelGeoCommand;
 use OiLab\OiLaravelGeo\Commands\SeedGeoDataCommand;
+use OiLab\OiLaravelGeo\Models\Address;
+use OiLab\OiLaravelGeo\Observers\AddressObserver;
 
 class OiLaravelGeoServiceProvider extends ServiceProvider
 {
@@ -22,6 +24,8 @@ class OiLaravelGeoServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerAddressObserver();
+
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../config/oi-laravel-geo.php' => config_path('oi-laravel-geo.php'),
@@ -44,5 +48,18 @@ class OiLaravelGeoServiceProvider extends ServiceProvider
                 SeedGeoDataCommand::class,
             ]);
         }
+    }
+
+    /**
+     * The observer enforces one default address per holder. It is registered
+     * unconditionally and no-ops when `address_morphable` is disabled, so the
+     * setting stays switchable at runtime.
+     */
+    protected function registerAddressObserver(): void
+    {
+        /** @var class-string<Address> $addressModel */
+        $addressModel = config('oi-laravel-geo.models.address') ?? Address::class;
+
+        $addressModel::observe(AddressObserver::class);
     }
 }

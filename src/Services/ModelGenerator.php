@@ -161,6 +161,23 @@ PHP;
             $fillable[] = 'region_id';
         }
 
+        if ($this->configuration['address_morphable'] ?? false) {
+            $fillable[] = 'addressable_type';
+            $fillable[] = 'addressable_id';
+            $fillable[] = 'is_default';
+        }
+
+        if ($this->configuration['address_geocoding'] ?? false) {
+            $fillable = array_merge($fillable, [
+                'latitude',
+                'longitude',
+                'geocoded_label',
+                'geocoding_score',
+                'ban_id',
+                'geocoded_at',
+            ]);
+        }
+
         return $fillable;
     }
 }

@@ -173,3 +173,161 @@ it('includes correct fillable fields for address model with foreign keys', funct
         ->toContain("'location'")
         ->not->toContain("'city',");
 });
+
+it('generates the exact v1.1.1 addresses migration with the default configuration', function () {
+    $configuration = [
+        'enable_geometry' => false,
+        'address_include_city' => false,
+        'address_include_country' => false,
+        'address_include_department' => false,
+        'address_include_region' => false,
+    ];
+
+    $generator = new MigrationGenerator($configuration);
+    $migrations = $generator->generate();
+
+    $addressesMigration = collect($migrations)->first(fn ($content, $filename) => str_contains($filename, 'create_addresses_table'));
+
+    expect($addressesMigration)->toBe(
+        file_get_contents(__DIR__.'/../Fixtures/expected/v1_1_1_addresses_migration.php.txt')
+    );
+});
+
+it('generates the exact v1.1.1 addresses migration when the new keys are explicitly off', function () {
+    $configuration = [
+        'enable_geometry' => false,
+        'address_include_city' => false,
+        'address_include_country' => false,
+        'address_include_department' => false,
+        'address_include_region' => false,
+        'address_morphable' => false,
+        'address_key_type' => 'id',
+        'address_geocoding' => false,
+    ];
+
+    $generator = new MigrationGenerator($configuration);
+    $migrations = $generator->generate();
+
+    $addressesMigration = collect($migrations)->first(fn ($content, $filename) => str_contains($filename, 'create_addresses_table'));
+
+    expect($addressesMigration)->toBe(
+        file_get_contents(__DIR__.'/../Fixtures/expected/v1_1_1_addresses_migration.php.txt')
+    );
+});
+
+it('adds morph columns and a composite index when addresses are morphable', function () {
+    $configuration = [
+        'enable_geometry' => false,
+        'address_include_city' => false,
+        'address_include_country' => false,
+        'address_include_department' => false,
+        'address_include_region' => false,
+        'address_morphable' => true,
+    ];
+
+    $generator = new MigrationGenerator($configuration);
+    $migrations = $generator->generate();
+
+    $addressesMigration = collect($migrations)->first(fn ($content, $filename) => str_contains($filename, 'create_addresses_table'));
+
+    expect($addressesMigration)
+        ->toContain("\$table->string('addressable_type')->nullable();")
+        ->toContain("\$table->string('addressable_id', 36)->nullable();")
+        ->toContain("\$table->boolean('is_default')->default(false);")
+        ->toContain("\$table->index(['addressable_type', 'addressable_id']);")
+        ->not->toContain('morphs(');
+});
+
+it('emits a ulid primary key when address_key_type is ulid', function () {
+    $configuration = [
+        'enable_geometry' => false,
+        'address_include_city' => false,
+        'address_include_country' => false,
+        'address_include_department' => false,
+        'address_include_region' => false,
+        'address_key_type' => 'ulid',
+    ];
+
+    $generator = new MigrationGenerator($configuration);
+    $migrations = $generator->generate();
+
+    $addressesMigration = collect($migrations)->first(fn ($content, $filename) => str_contains($filename, 'create_addresses_table'));
+
+    expect($addressesMigration)
+        ->toContain("\$table->ulid('id')->primary();")
+        ->not->toContain('$table->id();');
+});
+
+it('adds the geocoding columns when address_geocoding is enabled', function () {
+    $configuration = [
+        'enable_geometry' => false,
+        'address_include_city' => false,
+        'address_include_country' => false,
+        'address_include_department' => false,
+        'address_include_region' => false,
+        'address_geocoding' => true,
+    ];
+
+    $generator = new MigrationGenerator($configuration);
+    $migrations = $generator->generate();
+
+    $addressesMigration = collect($migrations)->first(fn ($content, $filename) => str_contains($filename, 'create_addresses_table'));
+
+    expect($addressesMigration)
+        ->toContain("\$table->decimal('latitude', 10, 7)->nullable();")
+        ->toContain("\$table->decimal('longitude', 10, 7)->nullable();")
+        ->toContain("\$table->string('geocoded_label', 255)->nullable();")
+        ->toContain("\$table->decimal('geocoding_score', 4, 3)->nullable();")
+        ->toContain("\$table->string('ban_id', 32)->nullable();")
+        ->toContain("\$table->timestamp('geocoded_at')->nullable();")
+        ->toContain("\$table->index(['latitude', 'longitude']);");
+});
+
+it('keeps geocoding columns and the geometry point side by side', function () {
+    $configuration = [
+        'enable_geometry' => true,
+        'geometry_models' => ['addresses'],
+        'database' => 'pgsql',
+        'address_include_city' => false,
+        'address_include_country' => false,
+        'address_include_department' => false,
+        'address_include_region' => false,
+        'address_geocoding' => true,
+    ];
+
+    $generator = new MigrationGenerator($configuration);
+    $migrations = $generator->generate();
+
+    $addressesMigration = collect($migrations)->first(fn ($content, $filename) => str_contains($filename, 'create_addresses_table'));
+
+    expect($addressesMigration)
+        ->toContain("\$table->point('location')->nullable();")
+        ->toContain("\$table->decimal('latitude', 10, 7)->nullable();");
+});
+
+it('adds the morph and geocoding fields to the generated address model', function () {
+    $configuration = [
+        'enable_geometry' => false,
+        'models_to_generate' => ['Address'],
+        'address_include_city' => false,
+        'address_include_country' => false,
+        'address_include_department' => false,
+        'address_include_region' => false,
+        'address_morphable' => true,
+        'address_geocoding' => true,
+    ];
+
+    $generator = new ModelGenerator($configuration);
+    $models = $generator->generate();
+
+    expect($models['Address.php'])
+        ->toContain("'addressable_type'")
+        ->toContain("'addressable_id'")
+        ->toContain("'is_default'")
+        ->toContain("'latitude'")
+        ->toContain("'longitude'")
+        ->toContain("'geocoded_label'")
+        ->toContain("'geocoding_score'")
+        ->toContain("'ban_id'")
+        ->toContain("'geocoded_at'");
+});

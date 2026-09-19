@@ -318,6 +318,11 @@ PHP;
         $hasGeometry = $this->shouldHaveGeometry('addresses');
         $geometryColumns = $hasGeometry ? $this->getPointColumn('location') : '';
 
+        // Primary key
+        $primaryKey = ($this->configuration['address_key_type'] ?? 'id') === 'ulid'
+            ? "\$table->ulid('id')->primary();"
+            : '$table->id();';
+
         // City field
         $cityField = $this->configuration['address_include_city'] ?? false
             ? "\$table->foreignId('city_id')->nullable()->constrained(config('oi-laravel-geo.tables.cities', 'cities'))->nullOnDelete();"
@@ -335,6 +340,36 @@ PHP;
             $optionalFields .= "\n            \$table->foreignId('region_id')->nullable()->constrained(config('oi-laravel-geo.tables.regions', 'regions'))->nullOnDelete();";
         }
 
+        // Polymorphic owner columns
+        $morphFields = '';
+        $morphIndex = '';
+        if ($this->configuration['address_morphable'] ?? false) {
+            // `addressable_id` is declared as an explicit string(36) instead of
+            // $table->morphs() / $table->ulidMorphs(): address holders legitimately have
+            // different key types (User and Team use an auto-incrementing bigint, an Entity
+            // uses a ULID) and a single morph helper can only commit to one of them.
+            // A 36 character string holds a bigint, a ULID (26) and a UUID (36) alike;
+            // Eloquent compares them correctly in both directions. Do not "simplify" this
+            // back to morphs() — it would break mixed-key holders in the same table.
+            $morphFields .= "\n            \$table->string('addressable_type')->nullable();";
+            $morphFields .= "\n            \$table->string('addressable_id', 36)->nullable();";
+            $morphFields .= "\n            \$table->boolean('is_default')->default(false);";
+            $morphIndex = "\n            \$table->index(['addressable_type', 'addressable_id']);";
+        }
+
+        // Geocoding columns — independent from enable_geometry (see README).
+        $geocodingFields = '';
+        $geocodingIndex = '';
+        if ($this->configuration['address_geocoding'] ?? false) {
+            $geocodingFields .= "\n            \$table->decimal('latitude', 10, 7)->nullable();";
+            $geocodingFields .= "\n            \$table->decimal('longitude', 10, 7)->nullable();";
+            $geocodingFields .= "\n            \$table->string('geocoded_label', 255)->nullable();";
+            $geocodingFields .= "\n            \$table->decimal('geocoding_score', 4, 3)->nullable();";
+            $geocodingFields .= "\n            \$table->string('ban_id', 32)->nullable();";
+            $geocodingFields .= "\n            \$table->timestamp('geocoded_at')->nullable();";
+            $geocodingIndex = "\n            \$table->index(['latitude', 'longitude']);";
+        }
+
         return <<<PHP
 <?php
 
@@ -347,16 +382,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create(config('oi-laravel-geo.tables.addresses', 'addresses'), function (Blueprint \$table) {
-            \$table->id();
+            {$primaryKey}
             \$table->string('name')->nullable();
             \$table->string('street_1');
             \$table->string('street_2')->nullable();
             \$table->string('street_3')->nullable();
             {$cityField}
-            \$table->string('postal_code');{$optionalFields}{$geometryColumns}
+            \$table->string('postal_code');{$optionalFields}{$morphFields}{$geocodingFields}{$geometryColumns}
             \$table->timestamps();
 
-            \$table->index('postal_code');
+            \$table->index('postal_code');{$morphIndex}{$geocodingIndex}
         });
     }
 

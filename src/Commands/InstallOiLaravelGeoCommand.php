@@ -146,6 +146,27 @@ class InstallOiLaravelGeoCommand extends Command
             default: false
         );
 
+        $this->configuration['address_morphable'] = confirm(
+            label: 'Attach addresses to other models (user, team, company site)?',
+            default: false,
+            hint: 'Adds addressable_type / addressable_id and an is_default flag'
+        );
+
+        $this->configuration['address_key_type'] = select(
+            label: 'Which primary key should addresses use?',
+            options: [
+                'id' => 'Auto-incrementing bigint (default)',
+                'ulid' => 'ULID (sortable, 26 characters)',
+            ],
+            default: 'id'
+        );
+
+        $this->configuration['address_geocoding'] = confirm(
+            label: 'Add geocoding columns to addresses?',
+            default: false,
+            hint: 'latitude, longitude, geocoded_label, geocoding_score, ban_id, geocoded_at'
+        );
+
         // Which models to generate
         $this->configuration['models_to_generate'] = multiselect(
             label: 'Which models would you like to generate in app/Models?',
@@ -296,6 +317,33 @@ class InstallOiLaravelGeoCommand extends Command
             $config = preg_replace(
                 "/'address_include_region' => (true|false)/",
                 "'address_include_region' => {$value}",
+                $config
+            );
+        }
+
+        if (isset($this->configuration['address_morphable'])) {
+            $value = $this->configuration['address_morphable'] ? 'true' : 'false';
+            $config = preg_replace(
+                "/'address_morphable' => (true|false)/",
+                "'address_morphable' => {$value}",
+                $config
+            );
+        }
+
+        if (isset($this->configuration['address_key_type'])) {
+            $value = $this->configuration['address_key_type'];
+            $config = preg_replace(
+                "/'address_key_type' => '[^']*'/",
+                "'address_key_type' => '{$value}'",
+                $config
+            );
+        }
+
+        if (isset($this->configuration['address_geocoding'])) {
+            $value = $this->configuration['address_geocoding'] ? 'true' : 'false';
+            $config = preg_replace(
+                "/'address_geocoding' => (true|false)/",
+                "'address_geocoding' => {$value}",
                 $config
             );
         }

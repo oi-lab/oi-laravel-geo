@@ -2,6 +2,26 @@
 
 All notable changes to `oi-laravel-geo` will be documented in this file.
 
+## [1.2.0] - 2026-09-19
+
+Three opt-in Address capabilities. All three default to off — an existing
+v1.1.1 installation that upgrades without touching its config generates the
+exact same `addresses` migration and behaves identically (covered by a
+byte-for-byte regression test).
+
+### Added
+- **Polymorphic addresses** (`address_morphable`, default `false`): `addressable_type` / `addressable_id` / `is_default` columns, an `addressable()` `morphTo()` relation on `Address`, and a new `OiLab\OiLaravelGeo\Concerns\HasAddresses` trait (`addresses()`, `defaultAddress()`, `addAddress()`) for holder models
+- `OiLab\OiLaravelGeo\Observers\AddressObserver`, registered by the service provider: enforces one default address per holder on write, since MySQL has no partial unique index
+- **ULID primary key** (`address_key_type`, default `'id'`): `'ulid'` emits `$table->ulid('id')->primary()` and `Address` implements `getKeyType()`, `getIncrementing()` and the `creating` hook by hand — the `HasUlids` trait cannot be applied conditionally
+- **Geocoding columns** (`address_geocoding`, default `false`): `latitude` / `longitude` (`decimal(10,7)`), `geocoded_label`, `geocoding_score` (`decimal(4,3)`), `ban_id`, `geocoded_at`, plus an `Address::isGeocoded()` helper and a `['latitude', 'longitude']` index. Independent from `enable_geometry`; the package itself never calls a geocoding service
+- `Address::usesUlidKey()`, `Address::isMorphable()` and `Address::hasGeocodingColumns()` config helpers
+- `geo:install` asks for the three new options and writes them to the published config
+- README section "Attached Addresses and Geocoding" and an expanded `docs/models/address.md`
+
+### Changed
+- `AddressData` gains `addressable_type`, `addressable_id`, `is_default`, `latitude`, `longitude`, `geocoded_label`, `geocoding_score`, `ban_id` and `geocoded_at`, all nullable with defaults; `id` widens to `int|string` for the ULID case. Constructing an `AddressData` without the new fields still works
+- `ModelGenerator` adds the morph and geocoding fields to the generated Address model's `$fillable` when the matching options are on
+
 ## [1.1.0] - 2026-07-01
 
 ### Added
